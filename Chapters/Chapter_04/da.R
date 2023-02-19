@@ -29,6 +29,6 @@ features <- row.names(modSummary) # extract otu names
 
 emmContrasts <- compute_contrasts(mod, features) # compute marginal contrasts between cases and controls for each lmm in mod
 
-saveRDS(psPrune, "da_ps_object.rds")
-saveRDS(modSummary, "da_mod_object.rds")
-saveRDS(emmContrasts, "da_emm_object.rds")
+saveRDS(psPrune, file.path(path.rds, "da_ps_object.rds"))
+saveRDS(modSummary, file.path(path.rds, "da_mod_object.rds"))
+saveRDS(emmContrasts, file.path(path.rds, "da_emm_object.rds"))
