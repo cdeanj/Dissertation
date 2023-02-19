@@ -84,14 +84,15 @@ compute_lmms <- function(countData, experimentData) {
   return(mod)
 }
 
-#' Computes estimated marginal means for each OTU between cases and controls
+#' Computes estimated marginal means for cases and controls
 #'
 #' @param mod An S4 class object of linear mixed effect model results for each OTU
 #' @param OTUs A vector of OTU names
 #'
-#' @return A data frame of marginal contrasts between cases and controls for each OTU
-compute_contrasts <- function(mod, otus) {
-  df <- data.frame()
+#' @return A list of two data.frames: (1) contrasts; and (2) emmeans on the response scale
+compute_emmeans <- function(mod, otus) {
+  contrasts_df <- data.frame()
+  emmeans_df <- data.frame()
   
   for(otu in otus) {
     message("Refitting OTU: ", otu)
@@ -99,15 +100,57 @@ compute_contrasts <- function(mod, otus) {
     message("Updating reference grid")
     rg <- update(ref_grid(fit), tran = make.tran("genlog", 1))
     message("Computing estimated marginal means")
-    emm <- emmeans(regrid(rg), ~ CaseOrControl)
+    emm_obj <- emmeans(regrid(rg), ~ CaseOrControl)
+    emm <- emm_obj %>% data.frame()
     message("Computing contrasts")
-    contr <- confint(pairs(emm)) %>% data.frame()
+    contr <- confint(pairs(emm_obj)) %>% data.frame()
     
     contr$otu <- otu
-    df <- rbind(df, contr)
+    emm$otu <- otu
+    contrasts_df <- rbind(contrasts_df, contr)
+    emmeans_df <- rbind(emmeans_df, emm)
   }
   
-  return(df)
+  return(list(contrasts_df, emmeans_df))
 }
 
+#' Computes log2 fold change
+#'
+#' @param emm An object of type "emmGrid"
+#'
+#' @return A data frame with log2 fold change between cases and controls
+compute_foldchange <- function(emm) {
+  cases <- emm %>% filter(CaseOrControl == "Case")
+  controls <- emm %>% filter(CaseOrControl == "Control")
+  
+  nrow <- nrow(cases)
+  ncol = 2
+  
+  ret <- data.frame(matrix(ncol = ncol, nrow = nrow))
+  colnames(ret) <- c("otu", "logFC")
+  
+  if(all(cases$otu == controls$otu)) {
+    ret$otu <- cases$otu
+    ret$logFC <- log2(cases$emmean) - log2(controls$emmean)
+  }
+  
+  return(ret)
+}
 
+#' Returns contrasts between cases and controls on the response scale
+#'
+#' @param emm A list of data frames containing contrasts and emms
+#'
+#' @return A data frame of contrasts between cases and controls for each otu
+get_contrasts <- function(emm) {
+  return(emm[[1]])
+}
+
+#' Returns emmeans for cases and controls on the response scale
+#'
+#' @param emm A list of data frames containing contrasts and emms
+#'
+#' @return A data frame of emmeans for each otu for cases and controls
+get_emmeans <- function(emm) {
+  return(emm[[2]])
+}
