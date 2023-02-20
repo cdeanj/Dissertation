@@ -27,8 +27,15 @@ mod <- glmmQvals(mod) # calculate q values
 modSummary <- summary(mod) %>% data.frame() # generate model summaries
 features <- row.names(modSummary) # extract otu names
 
-emmContrasts <- compute_contrasts(mod, features) # compute marginal contrasts between cases and controls for each lmm in mod
+emmList <- compute_emmeans(mod, features) # compute estimated marginal means for each lmm in mod
+
+contrastsDF <- get_contrasts(emmList) # return contrasts between cases and controls
+emmeansDF <- get_emmeans(emmList) # return emmeans for cases and controls
+
+foldchangeDF <- compute_foldchange(emmeansDF) # compute log2 fold change
 
 saveRDS(psPrune, file.path(path.rds, "da_ps_object.rds"))
 saveRDS(modSummary, file.path(path.rds, "da_mod_object.rds"))
-saveRDS(emmContrasts, file.path(path.rds, "da_emm_object.rds"))
+saveRDS(contrastsDF, file.path(path.rds, "da_contrasts_object.rds"))
+saveRDS(emmeansDF, file.path(path.rds, "da_emm_object.rds"))
+saveRDS(foldchangeDF, file.path(path.rds, "da_log2fc_object.rds"))
